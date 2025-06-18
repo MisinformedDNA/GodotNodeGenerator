@@ -3,14 +3,15 @@
 ## High Priority Tasks
 
 1. **Improve Scene File Parsing**
-   - [ ] Implement proper TSCN parser instead of regex-based approach
+   - [x] Implement proper TSCN parser instead of regex-based approach
    - [ ] Add support for binary SCN files
    - [ ] Handle escaped characters and special syntax in TSCN files
 
 2. **Use AdditionalFiles for Scene Access**
-   - [ ] Replace direct file I/O with proper use of AdditionalFiles
+   - [x] Replace direct file I/O with proper use of AdditionalFiles
    - [ ] Create a configuration system for mapping scene files
-   - [ ] Add documentation for setting up AdditionalFiles in .csproj
+   - [x] Add documentation for setting up AdditionalFiles in .csproj
+   - [x] Add tests for AdditionalFiles implementation
 
 3. **Enhance Error Handling and Diagnostics**
    - [ ] Add more descriptive error messages for scene parsing issues
@@ -24,13 +25,19 @@
    - [ ] Add support for custom node types
    - [ ] Handle generic nodes and inheritance
 
+5. **Enhance AdditionalFiles Support**
+   - [ ] Add better error messages for missing scene files
+   - [ ] Support different file formats and locations
+   - [ ] Add incremental analysis for faster compilation
+
 5. **Support for Advanced Node Access Patterns**
    - [ ] Add support for groups (GetNodesInGroup)
    - [ ] Generate methods for signal connections
    - [ ] Support for typed arrays of similar nodes (e.g., waypoints, spawn points)
 
 6. **Code Quality and Performance**
-   - [ ] Add unit tests for all components
+   - [x] Add unit tests for the SceneParser component
+   - [ ] Add unit tests for other components
    - [ ] Optimize performance for large scenes
    - [ ] Implement incremental processing for modified scenes only
 

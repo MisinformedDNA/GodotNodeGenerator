@@ -2,8 +2,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
@@ -18,21 +16,24 @@ namespace GodotNodeGenerator
             // Register the attribute source
             context.RegisterPostInitializationOutput(ctx => ctx.AddSource(
                 "NodeGeneratorAttribute.g.cs",
-                SourceText.From(SourceGenerationHelper.AttributeText, Encoding.UTF8)));
-
-            // Create a pipeline for all C# classes with our attribute
+                SourceText.From(SourceGenerationHelper.AttributeText, Encoding.UTF8)));            // Create a pipeline for all C# classes with our attribute
             var classDeclarations = context.SyntaxProvider
                 .CreateSyntaxProvider(
                     predicate: static (s, _) => IsTargetForGeneration(s),
                     transform: static (ctx, _) => GetTargetForGeneration(ctx))
                 .Where(static m => m is not null);
 
-            // Combine with compilation
-            var compilationAndClasses = context.CompilationProvider.Combine(classDeclarations.Collect());
+            // Get access to AdditionalFiles
+            var additionalFiles = context.AdditionalTextsProvider;
+
+            // Combine with compilation and additional files
+            var inputs = context.CompilationProvider
+                .Combine(classDeclarations.Collect())
+                .Combine(additionalFiles.Collect());
 
             // Register the source output generator
-            context.RegisterSourceOutput(compilationAndClasses, 
-                (spc, tuple) => Execute(spc, tuple.Left, tuple.Right));
+            context.RegisterSourceOutput(inputs, 
+                (spc, tuple) => Execute(spc, tuple.Left.Left, tuple.Left.Right, tuple.Right));
         }
 
         private static bool IsTargetForGeneration(SyntaxNode node)
@@ -68,7 +69,8 @@ namespace GodotNodeGenerator
             return null;
         }
 
-        private static void Execute(SourceProductionContext context, Compilation compilation, ImmutableArray<ClassDeclarationSyntax?> classes)
+        private static void Execute(SourceProductionContext context, Compilation compilation,
+            ImmutableArray<ClassDeclarationSyntax?> classes, ImmutableArray<AdditionalText> additionalFiles)
         {
             if (classes.IsDefaultOrEmpty)
             {
@@ -99,8 +101,8 @@ namespace GodotNodeGenerator
                     // Report diagnostic that scene file wasn't found
                     context.ReportDiagnostic(Diagnostic.Create(
                         new DiagnosticDescriptor(
-                            "GNGEN001", 
-                            "Scene file not found", 
+                            "GNGEN001",
+                            "Scene file not found",
                             $"Could not find scene file for class {classSymbol.Name}",
                             "GodotNodeGenerator",
                             DiagnosticSeverity.Warning,
@@ -109,8 +111,10 @@ namespace GodotNodeGenerator
                     continue;
                 }
 
-                // For demo, we'll always parse a scene since we're not doing actual file I/O
-                var nodeInfo = SceneParser.ParseScene(scenePath);
+                // Parse the scene using AdditionalFiles
+                var nodeInfo = SceneParser.ParseScene(scenePath, additionalFiles, context.ReportDiagnostic);
+
+                // Generate the code
                 var generatedCode = SourceGenerationHelper.GenerateNodeAccessors(
                     classSymbol.ContainingNamespace.ToDisplayString(),
                     classSymbol.Name,

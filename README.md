@@ -21,13 +21,24 @@ A C# source generator for Godot 4.x that creates strongly-typed accessors for no
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
 </ItemGroup>
+
+<!-- Add your scene files as AdditionalFiles -->
+<ItemGroup>
+    <!-- Include all TSCN files in your project -->
+    <AdditionalFiles Include="**\*.tscn" />
+    
+    <!-- Or you can specify specific scene files or directories -->
+    <!-- <AdditionalFiles Include="scenes\**\*.tscn" /> -->
+    <!-- <AdditionalFiles Include="res://scenes\Player.tscn" /> -->
+</ItemGroup>
 ```
 
 ## Usage
 
-1. Apply the `[NodeGenerator]` attribute to your Godot node classes
-2. Specify the scene file path in the attribute constructor (or let it infer from class name)
-3. Use the generated properties to access nodes
+1. Add your scene files as `AdditionalFiles` in your project file (.csproj)
+2. Apply the `[NodeGenerator]` attribute to your Godot node classes
+3. Specify the scene file path in the attribute constructor (or let it infer from class name)
+4. Use the generated properties to access nodes
 
 ### Example
 
@@ -95,8 +106,16 @@ namespace MyGame
 
 ### Scene File Resolution
 
-By default, the generator will look for a scene file with the same name as the class. 
-For example, if your class is named `Player`, it will look for `Player.tscn`.
+The generator looks for scene files that have been included as `AdditionalFiles` in your project. The `AdditionalFiles` mechanism is a standard Roslyn feature that allows source generators to access files without direct file I/O, which is important for incremental compilation and better IDE integration.
+
+By default, it will look for a scene file with the same name as the class. 
+For example, if your class is named `Player`, it will look for `Player.tscn` among your `AdditionalFiles`.
+
+The source generator follows this process to find the scene file:
+1. Try to find a file that exactly matches the path specified in the attribute
+2. If not found, try to find a file with the same filename
+3. If the path doesn't have a .tscn extension, try adding it
+4. If still not found, use a dummy scene for testing purposes or report a diagnostic
 
 You can override this by specifying the path in the attribute:
 
@@ -122,6 +141,20 @@ The source generator:
 - Support for binary (.scn) scene files
 - Automatic detection of scene files in the project
 - Enhanced error reporting and diagnostics
+
+## Testing
+
+The project includes a comprehensive test suite targeting various components:
+
+- **SceneParserTests**: Tests the TSCN file parser with various scene structures
+- **NodeGeneratorTests**: Tests the source generator's code generation capabilities
+- **SourceGenerationHelperTests**: Tests the helper methods for code generation
+
+To run tests, use the following command:
+
+```bash
+dotnet test
+```
 
 ## License
 

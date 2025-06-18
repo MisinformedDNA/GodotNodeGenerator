@@ -341,3 +341,6 @@ healthchecksdb
 
 # DevExpress
 *.licx
+
+# Live Unit Testing
+*.lutconfig
