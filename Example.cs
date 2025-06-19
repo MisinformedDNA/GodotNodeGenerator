@@ -1,6 +1,7 @@
 using System;
 using Godot;
 using GodotNodeGenerator;
+using System.Diagnostics.CodeAnalysis;
 
 namespace GodotExample
 {
@@ -10,24 +11,80 @@ namespace GodotExample
     public partial class Player : CharacterBody2D
     {
         // The source generator will generate properties for all nodes in the scene
-        // For example:
+        // with improved type safety and error handling:
         //
         // private Sprite2D? _Sprite;
-        // public Sprite2D Sprite => _Sprite ??= GetNode<Sprite2D>("Sprite");
+        // public Sprite2D Sprite 
+        // {
+        //     get
+        //     {
+        //         if (_Sprite == null)
+        //         {
+        //             var node = GetNodeOrNull("Sprite");
+        //             if (node == null)
+        //             {
+        //                 throw new NullReferenceException("Node not found: Sprite");
+        //             }
+        //             
+        //             _Sprite = node as Sprite2D;
+        //             if (_Sprite == null)
+        //             {
+        //                 throw new InvalidCastException($"Node at path {node.GetPath()} is of type {node.GetType()}, not Sprite2D");
+        //             }
+        //         }
+        //         
+        //         return _Sprite;
+        //     }
+        // }
         //
-        // private Camera2D? _Camera;
-        // public Camera2D Camera => _Camera ??= GetNode<Camera2D>("Camera");
+        // // Also generates TryGet methods for safer access:
+        // public bool TryGetSprite([NotNullWhen(true)] out Sprite2D? node)
+        // {
+        //     node = null;
+        //     if (_Sprite != null)
+        //     {
+        //         node = _Sprite;
+        //         return true;
+        //     }
+        //     
+        //     var tempNode = GetNodeOrNull("Sprite");
+        //     if (tempNode is Sprite2D typedNode)
+        //     {
+        //         _Sprite = typedNode;
+        //         node = typedNode;
+        //         return true;
+        //     }
+        //     
+        //     return false;
+        // }
         
         public override void _Ready()
         {
-            // With the generated code, you can access nodes directly as properties
-            // instead of using GetNode<T>() every time
-            Sprite.Texture = ResourceLoader.Load<Texture2D>("res://assets/player.png");
-            Camera.Current = true;
+            // Safe access with the regular property
+            try
+            {
+                Sprite.Texture = ResourceLoader.Load<Texture2D>("res://assets/player.png");
+                Camera.Current = true;
+            }
+            catch (NullReferenceException ex)
+            {
+                GD.PrintErr($"Missing node: {ex.Message}");
+            }
+            catch (InvalidCastException ex)
+            {
+                GD.PrintErr($"Type error: {ex.Message}");
+            }
             
-            // This is much cleaner and safer than:
-            // GetNode<Sprite2D>("Sprite").Texture = ...
-            // GetNode<Camera2D>("Camera").Current = true;
+            // Safer access with TryGet methods
+            if (TryGetSprite(out var sprite))
+            {
+                sprite.Texture = ResourceLoader.Load<Texture2D>("res://assets/player.png");
+            }
+            
+            if (TryGetCamera(out var camera))
+            {
+                camera.Current = true;
+            }
         }
     }
 }

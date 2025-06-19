@@ -21,12 +21,18 @@
 ## Medium Priority Tasks
 
 4. **Improve Node Type Handling**
-   - [ ] Create a comprehensive mapping of Godot node types to C# types
-   - [ ] Add support for custom node types
+   - [x] Create a comprehensive mapping of Godot node types to C# types
+   - [x] Add support for custom node types via script detection
    - [ ] Handle generic nodes and inheritance
 
-5. **Enhance AdditionalFiles Support**
-   - [ ] Add better error messages for missing scene files
+5. **Enhance Type Safety**
+   - [x] Add proper exception handling for missing or incorrectly typed nodes
+   - [x] Provide TryGet methods for safe node access
+   - [x] Add better error messages with path and type information
+   - [ ] Generate helper methods for common node operations
+
+6. **Enhance AdditionalFiles Support**
+   - [x] Add better error messages for missing scene files
    - [ ] Support different file formats and locations
    - [ ] Add incremental analysis for faster compilation
 

@@ -1,8 +1,8 @@
+using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.CodeAnalysis;
 
 namespace GodotNodeGenerator
 {
@@ -19,7 +19,7 @@ namespace GodotNodeGenerator
         /// <param name="reportDiagnostic">Optional action to report diagnostics</param>
         /// <returns>List of nodes in the scene</returns>
         public static List<NodeInfo> ParseScene(
-            string scenePath, 
+            string scenePath,
             IEnumerable<AdditionalText>? additionalFiles = null,
             Action<Diagnostic>? reportDiagnostic = null)
         {
@@ -38,10 +38,10 @@ namespace GodotNodeGenerator
                             isEnabledByDefault: true),
                         location: null,
                         scenePath));
-                    
-                    return new List<NodeInfo>();
+
+                    return [];
                 }
-                
+
                 return ParseSceneContent(sceneContent);
             }
             catch (Exception ex)
@@ -57,8 +57,8 @@ namespace GodotNodeGenerator
                     location: null,
                     scenePath,
                     ex.Message));
-                
-                return new List<NodeInfo>();
+
+                return [];
             }
         }
 
@@ -97,33 +97,33 @@ namespace GodotNodeGenerator
             var sceneContent = sceneFile.GetText()?.ToString();
             return sceneContent ?? GetDummySceneContent();
         }
-        
+
         // Helper method to find the scene file in the additional files
         private static AdditionalText? FindSceneFile(string scenePath, IEnumerable<AdditionalText> additionalFiles)
         {
             // Try direct path match first
-            var result = additionalFiles.FirstOrDefault(file => 
+            var result = additionalFiles.FirstOrDefault(file =>
                 string.Equals(file.Path, scenePath, StringComparison.OrdinalIgnoreCase));
-            
+
             // If not found, try matching by file name
             if (result == null)
             {
                 var fileName = Path.GetFileName(scenePath);
-                result = additionalFiles.FirstOrDefault(file => 
+                result = additionalFiles.FirstOrDefault(file =>
                     string.Equals(Path.GetFileName(file.Path), fileName, StringComparison.OrdinalIgnoreCase));
             }
-            
+
             // If still not found, try looking for *.tscn files
             if (result == null && !scenePath.EndsWith(".tscn", StringComparison.OrdinalIgnoreCase))
             {
                 var nameWithExtension = $"{Path.GetFileNameWithoutExtension(scenePath)}.tscn";
-                result = additionalFiles.FirstOrDefault(file => 
+                result = additionalFiles.FirstOrDefault(file =>
                     string.Equals(Path.GetFileName(file.Path), nameWithExtension, StringComparison.OrdinalIgnoreCase));
             }
-            
+
             return result;
         }
-        
+
         // Provides dummy scene content for testing or when the file is not found
         private static string GetDummySceneContent()
         {
@@ -156,8 +156,14 @@ value = 100.0";
             var nodes = new List<NodeInfo>();
             var nodeDict = new Dictionary<string, (string Name, string Type, string Parent)>();
 
+            // Track scripts and properties for each node
+            var nodeScripts = new Dictionary<string, string>();
+            var nodeProperties = new Dictionary<string, Dictionary<string, string>>();
+
             // Parse content using a state machine approach
-            var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var lines = content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+
+            string currentNode = "";
 
             // Process each line
             for (int i = 0; i < lines.Length; i++)
@@ -170,7 +176,27 @@ value = 100.0";
                     var nodeInfo = ParseNodeDeclaration(line);
                     if (nodeInfo.HasValue)
                     {
-                        nodeDict[nodeInfo.Value.Name] = nodeInfo.Value;
+                        currentNode = nodeInfo.Value.Name;
+                        nodeDict[currentNode] = nodeInfo.Value;
+                        nodeProperties[currentNode] = [];
+                    }
+                }
+                // Check for script assignment
+                else if (!string.IsNullOrEmpty(currentNode) && line.StartsWith("script = "))
+                {
+                    var scriptPath = ExtractResourcePath(line);
+                    if (!string.IsNullOrEmpty(scriptPath))
+                    {
+                        nodeScripts[currentNode] = scriptPath;
+                    }
+                }
+                // Check for other property assignments
+                else if (!string.IsNullOrEmpty(currentNode) && line.Contains(" = "))
+                {
+                    var parts = line.Split([" = "], 2, StringSplitOptions.None);
+                    if (parts.Length == 2 && nodeProperties.ContainsKey(currentNode))
+                    {
+                        nodeProperties[currentNode][parts[0].Trim()] = parts[1].Trim();
                     }
                 }
             }
@@ -179,12 +205,26 @@ value = 100.0";
             foreach (var kvp in nodeDict)
             {
                 var path = CalculateNodePath(kvp.Key, nodeDict);
-                nodes.Add(new NodeInfo
+                var nodeInfo = new NodeInfo
                 {
                     Name = kvp.Value.Name,
                     Type = kvp.Value.Type,
                     Path = path
-                });
+                };
+
+                // Add script info if available
+                if (nodeScripts.TryGetValue(kvp.Key, out var script))
+                {
+                    nodeInfo.Script = script;
+                }
+
+                // Add properties if available
+                if (nodeProperties.TryGetValue(kvp.Key, out var props))
+                {
+                    nodeInfo.Properties = props;
+                }
+
+                nodes.Add(nodeInfo);
             }
 
             return nodes;
@@ -223,7 +263,7 @@ value = 100.0";
                 if (position >= line.Length)
                     break;
 
-                string attrName = line.Substring(attrNameStart, position - attrNameStart).Trim();
+                string attrName = line[attrNameStart..position].Trim();
                 position++; // Skip '='
 
                 // Extract quoted value
@@ -238,7 +278,7 @@ value = 100.0";
 
                     if (position < line.Length)
                     {
-                        string value = line.Substring(valueStart, position - valueStart);
+                        string value = line[valueStart..position];
                         position++; // Skip closing quote
 
                         // Store the attribute
@@ -302,6 +342,34 @@ value = 100.0";
             // Handle normal paths - recursive lookup
             var parentPath = CalculateNodePath(nodeInfo.Parent, nodeDict);
             return $"{parentPath}/{nodeName}";
+        }
+
+        /// <summary>
+        /// Extracts a resource path from a line like "script = ExtResource("1_kqm1w")" or "script = Resource("res://path/to/script.cs")"
+        /// </summary>
+        public static string ExtractResourcePath(string line)
+        {
+            // Handle direct resource path
+            if (line.Contains("\"res://") || line.Contains("\"user://"))
+            {
+                int startIndex = line.IndexOf('"');
+                int endIndex = line.LastIndexOf('"');
+
+                if (startIndex >= 0 && endIndex > startIndex)
+                {
+                    return line.Substring(startIndex + 1, endIndex - startIndex - 1);
+                }
+            }
+
+            // Handle ExtResource reference
+            if (line.Contains("ExtResource("))
+            {
+                // For now, we can't resolve the actual path from the resource ID
+                // In a real implementation, you would track resource declarations and resolve them
+                return "ExtResourceReference";
+            }
+
+            return string.Empty;
         }
     }
 }
