@@ -1,10 +1,25 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace GodotNodeGenerator
 {
+    // Node tree helper for building the wrapper classes
+    internal class NodeTreeItem
+    {
+        public NodeInfo Info { get; set; } = null!;
+        public string Name { get; set; } = string.Empty;
+        public string Path { get; set; } = string.Empty;
+        public string GodotType { get; set; } = string.Empty;
+        public NodeTreeItem? Parent { get; set; }
+        public Dictionary<string, NodeTreeItem> Children { get; } = new Dictionary<string, NodeTreeItem>();
+    }
+
     public static class SourceGenerationHelper
     {
         // The source code for the attribute, which will be embedded in the assembly
@@ -36,6 +51,7 @@ namespace GodotNodeGenerator
 using Godot;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Collections.Generic;
 
 namespace {namespaceName}
 {{
@@ -43,7 +59,7 @@ namespace {namespaceName}
     public partial class {className}
     {{");
 
-            // Generate a property for each node
+            // Generate standard accessors for all nodes first
             foreach (var nodeInfo in nodeInfos)
             {
                 var safeName = MakeSafeIdentifier(nodeInfo.Name);
@@ -115,7 +131,36 @@ namespace {namespaceName}
             return false;
         }}");
             }
+            
+            // Now generate the node tree wrapper classes
+            sb.AppendLine(@"
+        #region Node Tree Accessors");
 
+            // Build a tree of nodes
+            var nodeTree = BuildNodeTree(nodeInfos);
+            
+            // Generate wrapper classes for nodes with children
+            foreach (var node in nodeTree.Values)
+            {
+                if (node.Children.Count > 0)
+                {
+                    GenerateNodeWrapperClass(sb, node, 2, className);
+                }
+            }
+            
+            // Generate properties for top-level nodes with children
+            foreach (var node in nodeTree.Values)
+            {
+                if (node.Parent == null && node.Children.Count > 0)
+                {
+                    GenerateNodeProperty(sb, node, 2);
+                }
+            }
+            
+            sb.AppendLine(@"
+        #endregion");
+
+            // Close the class and namespace
             sb.AppendLine(@"    }
 }");
 
@@ -129,7 +174,7 @@ namespace {namespaceName}
             var result = new StringBuilder();
             
             // Ensure it starts with a letter or underscore
-            if (!char.IsLetter(name[0]) && name[0] != '_')
+            if (name.Length > 0 && !char.IsLetter(name[0]) && name[0] != '_')
             {
                 result.Append('_');
             }
@@ -167,6 +212,7 @@ namespace {namespaceName}
                 "TextEdit" => "TextEdit",
                 "RichTextLabel" => "RichTextLabel",
                 "Panel" => "Panel",
+                "PanelContainer" => "PanelContainer",
                 "TabContainer" => "TabContainer",
                 "ProgressBar" => "ProgressBar",
                 "ScrollContainer" => "ScrollContainer",
@@ -232,6 +278,159 @@ namespace {namespaceName}
         {
             return !string.IsNullOrEmpty(nodeInfo.Script);
         }
+
+        // Build a tree structure from the list of nodes
+        private static Dictionary<string, NodeTreeItem> BuildNodeTree(List<NodeInfo> nodeInfos)
+        {
+            var nodeTree = new Dictionary<string, NodeTreeItem>();
+
+            // First, create all nodes in the tree
+            foreach (var nodeInfo in nodeInfos)
+            {
+                var treeItem = new NodeTreeItem
+                {
+                    Info = nodeInfo,
+                    Name = nodeInfo.Name,
+                    Path = nodeInfo.Path,
+                    GodotType = MapGodotTypeToCS(nodeInfo.Type)
+                };
+                
+                nodeTree[nodeInfo.Path] = treeItem;
+            }
+
+            // Then, build the parent-child relationships
+            foreach (var node in nodeTree.Values.ToList())
+            {
+                // Skip root nodes
+                if (!node.Path.Contains("/"))
+                    continue;
+
+                // Find the parent path
+                var lastSlash = node.Path.LastIndexOf('/');
+                if (lastSlash <= 0) continue;
+                
+                var parentPath = node.Path.Substring(0, lastSlash);
+                
+                // Add as child to parent
+                if (nodeTree.TryGetValue(parentPath, out var parentNode))
+                {
+                    node.Parent = parentNode;
+                    parentNode.Children[node.Name] = node;
+                }
+            }
+
+            return nodeTree;
+        }
+
+        // Generate a wrapper class for a node and its children
+        private static void GenerateNodeWrapperClass(StringBuilder sb, NodeTreeItem node, int indentLevel, string rootClassName)
+        {
+            string indent = new string(' ', indentLevel * 4);
+            var godotType = node.GodotType;
+            var nodeName = node.Name;
+            var safeName = MakeSafeIdentifier(nodeName);
+
+            // Skip if no children
+            if (node.Children.Count == 0)
+                return;
+                
+            // Generate the wrapper class
+            sb.AppendLine($@"
+{indent}/// <summary>
+{indent}/// Wrapper class for {nodeName} node providing access to its child nodes.
+{indent}/// </summary>
+{indent}public class {safeName}Wrapper
+{indent}{{
+{indent}    private readonly {rootClassName} _owner;
+{indent}    private readonly {godotType} _node;
+{indent}    
+{indent}    internal {safeName}Wrapper({rootClassName} owner, {godotType} node)
+{indent}    {{
+{indent}        _owner = owner;
+{indent}        _node = node;
+{indent}    }}
+{indent}    
+{indent}    /// <summary>
+{indent}    /// Gets the underlying Godot {godotType} node.
+{indent}    /// </summary>
+{indent}    public {godotType} Node => _node;");
+
+            // Generate properties for child nodes
+            foreach (var child in node.Children.Values)
+            {
+                var childSafeName = MakeSafeIdentifier(child.Name);
+                var childGodotType = child.GodotType;
+                
+                // If this child has children, generate a wrapper property
+                if (child.Children.Count > 0)
+                {
+                    // Property returning a wrapper
+                    sb.AppendLine($@"
+{indent}    private {childSafeName}Wrapper? _{childSafeName};
+{indent}    
+{indent}    /// <summary>
+{indent}    /// Gets the {child.Name} node wrapper.
+{indent}    /// </summary>
+{indent}    public {childSafeName}Wrapper {childSafeName}
+{indent}    {{
+{indent}        get
+{indent}        {{
+{indent}            if (_{childSafeName} == null)
+{indent}            {{
+{indent}                _{childSafeName} = new {childSafeName}Wrapper(_owner, _owner.{childSafeName});
+{indent}            }}
+{indent}            return _{childSafeName};
+{indent}        }}
+{indent}    }}");
+                    
+                    // Generate wrapper for this child too
+                    GenerateNodeWrapperClass(sb, child, indentLevel + 1, rootClassName);
+                }
+                else
+                {
+                    // Direct property for leaf node
+                    sb.AppendLine($@"
+{indent}    /// <summary>
+{indent}    /// Gets the {child.Name} node.
+{indent}    /// </summary>
+{indent}    public {childGodotType} {childSafeName} => _owner.{childSafeName};");
+                }
+            }
+            
+            // Close the class
+            sb.AppendLine($"{indent}}}");
+        }
+
+        // Generate a property for a node in the parent class
+        private static void GenerateNodeProperty(StringBuilder sb, NodeTreeItem node, int indentLevel)
+        {
+            string indent = new string(' ', indentLevel * 4);
+            var safeName = MakeSafeIdentifier(node.Name);
+            var godotType = node.GodotType;
+            
+            // Skip if node has no children
+            if (node.Children.Count == 0)
+                return;
+
+            // Generate wrapper property for the root class
+            sb.AppendLine($@"
+{indent}private {safeName}Wrapper? _{safeName}Wrapper;
+
+{indent}/// <summary>
+{indent}/// Gets a wrapper for the {node.Name} node that provides access to its child nodes.
+{indent}/// </summary>
+{indent}public {safeName}Wrapper {safeName}
+{indent}{{
+{indent}    get
+{indent}    {{
+{indent}        if (_{safeName}Wrapper == null)
+{indent}        {{
+{indent}            _{safeName}Wrapper = new {safeName}Wrapper(this, {safeName});
+{indent}        }}
+{indent}        return _{safeName}Wrapper;
+{indent}    }}
+{indent}}}");
+        }
     }
 
     // Represents a node in a Godot scene
@@ -242,6 +441,5 @@ namespace {namespaceName}
         public string Type { get; set; } = "Node";
         public string? Script { get; set; } = null;
         public bool IsExportedProperty { get; set; } = false;
-        public Dictionary<string, string> Properties { get; set; } = new Dictionary<string, string>();
-    }
+        public Dictionary<string, string> Properties { get; set; } = new Dictionary<string, string>();    }
 }

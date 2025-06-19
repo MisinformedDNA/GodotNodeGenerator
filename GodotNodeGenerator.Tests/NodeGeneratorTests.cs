@@ -2,7 +2,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
-using System.Text.RegularExpressions;
 
 namespace GodotNodeGenerator.Tests
 {
@@ -164,13 +163,10 @@ current = true
             // Verify script detection is working
             Assert.Contains("(script: \"res://scripts/TestNode.cs\")", generatedCode);
 
-            // Normalize whitespace for a more reliable comparison
-            var normalizedCode = NormalizeWhitespace(generatedCode);
-
             // Verify specific formatting expectations
-            Assert.Contains("if (_TestNode == null)", normalizedCode);
-            Assert.Contains("var node = GetNodeOrNull(\"TestNode\");", normalizedCode);
-            Assert.Contains("public bool TryGetTestNode([NotNullWhen(true)] out Sprite2D? node)", normalizedCode);
+            Assert.Contains("if (_TestNode == null)", generatedCode);
+            Assert.Contains("var node = GetNodeOrNull(\"TestNode\");", generatedCode);
+            Assert.Contains("public bool TryGetTestNode([NotNullWhen(true)] out Sprite2D? node)", generatedCode);
         }
 
         [Fact]
@@ -284,15 +280,6 @@ namespace Test
                 .Select(t => (t.FilePath, SourceText.From(t.GetText().ToString())))
                 .Select(f => (Path.GetFileName(f.FilePath), f.Item2))];
         }
-
-        private static string NormalizeWhitespace(string code)
-        {
-            // Remove extra whitespace and normalize line endings
-            return RemoveWhitespaceRegex().Replace(code, " ").Trim();
-        }
-
-        [GeneratedRegex(@"\s+")]
-        private static partial Regex RemoveWhitespaceRegex();
 
         #endregion
     }

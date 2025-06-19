@@ -8,7 +8,7 @@
     <IsRoslynComponent>true</IsRoslynComponent>
     <!-- Package metadata -->
     <PackageId>GodotNodeGenerator</PackageId>
-    <Version>0.0.1-alpha</Version>
+    <Version>0.0.2-alpha</Version>
     <Authors>MisinformedDNA</Authors>
     <Company></Company>
     <Description>C# source generator for Godot 4.x that creates strongly-typed accessors for nodes in your scenes.</Description>

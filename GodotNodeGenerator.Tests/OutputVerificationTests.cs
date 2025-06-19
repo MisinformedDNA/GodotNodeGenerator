@@ -230,6 +230,7 @@ namespace ExactTest
 using Godot;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Collections.Generic;
 
 namespace ExactTest
 {
@@ -292,6 +293,10 @@ namespace ExactTest
             
             return false;
         }
+
+        #region Node Tree Accessors
+
+        #endregion
     }
 }
 ";

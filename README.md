@@ -5,6 +5,7 @@ A C# source generator for Godot 4.x that creates strongly-typed accessors for no
 ## Features
 
 - Automatically generates strongly-typed accessors for nodes in your Godot scenes
+- Hierarchical node navigation with nested classes (e.g., `this.PanelContainer.Button`)
 - Enhanced type safety with proper error handling and null checks
 - TryGet methods for safe access without exceptions
 - Script and property detection for better code generation
@@ -113,7 +114,7 @@ namespace YourProject.Scripts
     {
         public override void _Ready()
         {
-            // Using the generated accessors
+            // Using the direct node accessors
             Sprite.Modulate = Colors.Red;
             
             // Using null-safe TryGet methods
@@ -121,6 +122,9 @@ namespace YourProject.Scripts
             {
                 camera.Current = true;
             }
+            
+            // Using nested class navigation for hierarchical nodes
+            UI.MainPanel.Button.Text = "Click Me!";
         }
     }
 }
@@ -149,7 +153,7 @@ texture = ExtResource("player_texture")
 1. Add your scene files as `AdditionalFiles` in your project file (.csproj)
 2. Apply the `[NodeGenerator]` attribute to your Godot node classes
 3. Specify the scene file path in the attribute constructor (or let it infer from class name)
-4. Use the generated properties to access nodes
+4. Use the generated properties to access nodes directly or via nested classes
 
 ### Generated Code Example
 
@@ -285,6 +289,82 @@ The generator detects scripts attached to nodes and includes this information in
 ```
 
 This makes it easier to understand the relationship between scene nodes and script files.
+
+---
+
+## Nested Class Navigation
+
+One of the most powerful features is the nested class navigation for hierarchical node structures. Instead of accessing nodes with long paths like `GetNode<Button>("UI/PanelContainer/VBoxContainer/Button")`, you can use a more intuitive object-oriented approach:
+
+```csharp
+// Access nested nodes through property chains
+UI.PanelContainer.VBoxContainer.Button.Text = "Click Me!";
+```
+
+This approach gives you several benefits:
+- Better type safety at compile time
+- Code completion for available child nodes
+- More readable and maintainable code
+- Natural object-oriented navigation
+
+### Example Scene Structure
+
+```
+[node name="UI" type="Control"]
+
+[node name="PanelContainer" type="PanelContainer" parent="UI"]
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/PanelContainer"]
+
+[node name="Button" type="Button" parent="UI/PanelContainer/VBoxContainer"]
+
+[node name="Label" type="Label" parent="UI/PanelContainer/VBoxContainer"]
+```
+
+### Generated Wrapper Classes
+
+For the above scene, the generator creates wrapper classes for nodes with children:
+
+```csharp
+public class UIWrapper
+{
+    // Access to the underlying node
+    public Control Node { get; }
+    
+    // Access to the child wrapper
+    public PanelContainerWrapper PanelContainer { get; }
+}
+
+public class PanelContainerWrapper
+{
+    public PanelContainer Node { get; }
+    
+    public VBoxContainerWrapper VBoxContainer { get; }
+}
+
+public class VBoxContainerWrapper
+{
+    public VBoxContainer Node { get; }
+    
+    // Direct access to leaf nodes
+    public Button Button { get; }
+    public Label Label { get; }
+}
+```
+
+These wrapper classes are accessed via properties in your main class:
+
+```csharp
+// In your MonoBehaviour class:
+public override void _Ready()
+{
+    // Access via nested wrappers
+    UI.PanelContainer.VBoxContainer.Button.Pressed += OnButtonPressed;
+    
+    // You can still access nodes directly
+    Button.Disabled = true;
+}
+```
 
 ---
 
