@@ -9,7 +9,7 @@
 
     <!-- Package metadata -->
     <PackageId>GodotNodeGenerator</PackageId>
-    <Version>0.0.3-alpha</Version>
+    <Version>0.0.5-alpha</Version>
     <Authors>MisinformedDNA</Authors>
     <Company></Company>
     <Description>C# source generator for Godot 4.x that creates strongly-typed accessors for nodes in your scenes.</Description>

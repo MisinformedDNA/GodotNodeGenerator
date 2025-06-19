@@ -62,7 +62,7 @@ namespace {namespaceName}
             // Generate standard accessors for all nodes first
             foreach (var nodeInfo in nodeInfos)
             {
-                var safeName = MakeSafeIdentifier(nodeInfo.Name);
+                var safeName = MakeSafeIdentifier(nodeInfo.Name, className);
                 var godotType = MapGodotTypeToCS(nodeInfo.Type);
 
                 // Check if there's a script associated with this node
@@ -137,7 +137,7 @@ namespace {namespaceName}
         #region Node Tree Accessors");
 
             // Build a tree of nodes
-            var nodeTree = BuildNodeTree(nodeInfos);
+            var nodeTree = BuildNodeTree(nodeInfos, className);
             
             // Generate wrapper classes for nodes with children
             foreach (var node in nodeTree.Values)
@@ -153,7 +153,7 @@ namespace {namespaceName}
             {
                 if (node.Parent == null && node.Children.Count > 0)
                 {
-                    GenerateNodeProperty(sb, node, 2);
+                    GenerateNodeProperty(sb, node, 2, className);
                 }
             }
             
@@ -168,7 +168,7 @@ namespace {namespaceName}
         }
 
         // Convert a node name to a valid C# identifier
-        private static string MakeSafeIdentifier(string name)
+        private static string MakeSafeIdentifier(string name, string className = "")
         {
             // Simple implementation - replace invalid characters with underscore
             var result = new StringBuilder();
@@ -191,7 +191,15 @@ namespace {namespaceName}
                 }
             }
             
-            return result.ToString();
+            var identifier = result.ToString();
+            
+            // If the property name would be the same as the class name, append "Node" to avoid C# error
+            if (!string.IsNullOrEmpty(className) && identifier == className)
+            {
+                identifier += "Node";
+            }
+            
+            return identifier;
         }
 
         // Map Godot node types to C# types
@@ -280,7 +288,7 @@ namespace {namespaceName}
         }
 
         // Build a tree structure from the list of nodes
-        private static Dictionary<string, NodeTreeItem> BuildNodeTree(List<NodeInfo> nodeInfos)
+        private static Dictionary<string, NodeTreeItem> BuildNodeTree(List<NodeInfo> nodeInfos, string className)
         {
             var nodeTree = new Dictionary<string, NodeTreeItem>();
 
@@ -290,7 +298,7 @@ namespace {namespaceName}
                 var treeItem = new NodeTreeItem
                 {
                     Info = nodeInfo,
-                    Name = nodeInfo.Name,
+                    Name = MakeSafeIdentifier(nodeInfo.Name, className),
                     Path = nodeInfo.Path,
                     GodotType = MapGodotTypeToCS(nodeInfo.Type)
                 };
@@ -328,7 +336,7 @@ namespace {namespaceName}
             string indent = new string(' ', indentLevel * 4);
             var godotType = node.GodotType;
             var nodeName = node.Name;
-            var safeName = MakeSafeIdentifier(nodeName);
+            var safeName = MakeSafeIdentifier(nodeName, rootClassName);
 
             // Skip if no children
             if (node.Children.Count == 0)
@@ -358,7 +366,7 @@ namespace {namespaceName}
             // Generate properties for child nodes
             foreach (var child in node.Children.Values)
             {
-                var childSafeName = MakeSafeIdentifier(child.Name);
+                var childSafeName = MakeSafeIdentifier(child.Name, rootClassName);
                 var childGodotType = child.GodotType;
                 
                 // If this child has children, generate a wrapper property
@@ -402,10 +410,10 @@ namespace {namespaceName}
         }
 
         // Generate a property for a node in the parent class
-        private static void GenerateNodeProperty(StringBuilder sb, NodeTreeItem node, int indentLevel)
+        private static void GenerateNodeProperty(StringBuilder sb, NodeTreeItem node, int indentLevel, string className)
         {
             string indent = new string(' ', indentLevel * 4);
-            var safeName = MakeSafeIdentifier(node.Name);
+            var safeName = MakeSafeIdentifier(node.Name, className);
             var godotType = node.GodotType;
             
             // Skip if node has no children
