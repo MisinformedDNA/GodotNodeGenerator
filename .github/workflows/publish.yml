@@ -1,0 +1,76 @@
+name: Build, Test, Package and Publish
+
+# Manual trigger with optional version input parameter
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version (leave empty to use the version in csproj)'
+        required: false
+        type: string
+      is_prerelease:
+        description: 'Is this a prerelease?'
+        required: false
+        default: false
+        type: boolean
+      publish_to_nuget:
+        description: 'Publish to NuGet.org?'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build-test-publish:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Create package with specified version
+        if: ${{ github.event.inputs.version != '' }}
+        run: dotnet pack --configuration Release --no-build ./GodotNodeGenerator/GodotNodeGenerator.csproj /p:PackageVersion=${{ github.event.inputs.version }} -o ./nupkg
+
+      - name: Create package with default version
+        if: ${{ github.event.inputs.version == '' }}
+        run: dotnet pack --configuration Release --no-build ./GodotNodeGenerator/GodotNodeGenerator.csproj -o ./nupkg
+
+      - name: Upload package as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: nuget-package
+          path: ./nupkg/*.nupkg
+
+      - name: Publish to NuGet.org
+        if: ${{ github.event.inputs.publish_to_nuget == 'true' }}
+        run: |
+          $packagePath = Get-ChildItem -Path "./nupkg" -Filter "*.nupkg" | Select-Object -First 1 -ExpandProperty FullName
+          dotnet nuget push $packagePath --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+        shell: pwsh
+
+      - name: Create GitHub release
+        if: ${{ github.event.inputs.publish_to_nuget == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./nupkg/*.nupkg
+          tag_name: v${{ github.event.inputs.version || '1.0.0' }}
+          name: Release ${{ github.event.inputs.version || '1.0.0' }}
+          draft: false
+          prerelease: ${{ github.event.inputs.is_prerelease }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

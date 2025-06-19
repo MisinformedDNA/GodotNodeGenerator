@@ -299,6 +299,9 @@ One of the most powerful features is the nested class navigation for hierarchica
 ```csharp
 // Access nested nodes through property chains
 UI.PanelContainer.VBoxContainer.Button.Text = "Click Me!";
+
+// Access the underlying node directly if needed
+var panel = UI.PanelContainer.Node;
 ```
 
 This approach gives you several benefits:
@@ -306,6 +309,7 @@ This approach gives you several benefits:
 - Code completion for available child nodes
 - More readable and maintainable code
 - Natural object-oriented navigation
+- Access to both the wrapper and the underlying node
 
 ### Example Scene Structure
 
@@ -329,7 +333,7 @@ For the above scene, the generator creates wrapper classes for nodes with childr
 public class UIWrapper
 {
     // Access to the underlying node
-    public Control Node { get; }
+    public Control Node => _node;
     
     // Access to the child wrapper
     public PanelContainerWrapper PanelContainer { get; }
@@ -337,18 +341,21 @@ public class UIWrapper
 
 public class PanelContainerWrapper
 {
-    public PanelContainer Node { get; }
+    // Access to the underlying node
+    public PanelContainer Node => _node;
     
+    // Access to the child wrapper
     public VBoxContainerWrapper VBoxContainer { get; }
 }
 
 public class VBoxContainerWrapper
 {
-    public VBoxContainer Node { get; }
+    // Access to the underlying node
+    public VBoxContainer Node => _node;
     
     // Direct access to leaf nodes
-    public Button Button { get; }
-    public Label Label { get; }
+    public Button Button => _owner.Button;
+    public Label Label => _owner.Label;
 }
 ```
 
@@ -361,8 +368,12 @@ public override void _Ready()
     // Access via nested wrappers
     UI.PanelContainer.VBoxContainer.Button.Pressed += OnButtonPressed;
     
-    // You can still access nodes directly
+    // You can still access nodes directly (flat accessors)
     Button.Disabled = true;
+    
+    // Access the underlying Godot node when needed
+    var vbox = UI.PanelContainer.VBoxContainer.Node;
+    vbox.AddThemeConstantOverride("separation", 10);
 }
 ```
 
@@ -400,6 +411,8 @@ The project includes a comprehensive test suite targeting various components:
 - **NodeGeneratorTests**: Tests the source generator's code generation capabilities
 - **SourceGenerationHelperTests**: Tests the helper methods for code generation
 - **OutputVerificationTests**: Verifies that the generated code matches expected output
+- **NestedClassAccessorTests**: Tests the nested class accessors functionality
+- **NestedClassUsageTests**: Tests real-world usage patterns of nested class navigation
 
 To run tests, use the following command:
 
