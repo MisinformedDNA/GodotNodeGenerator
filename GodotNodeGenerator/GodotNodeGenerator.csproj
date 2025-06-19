@@ -6,6 +6,18 @@
     <LangVersion>latest</LangVersion>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
+    <!-- Package metadata -->
+    <PackageId>GodotNodeGenerator</PackageId>
+    <Version>0.0.1-alpha</Version>
+    <Authors>MisinformedDNA</Authors>
+    <Company></Company>
+    <Description>C# source generator for Godot 4.x that creates strongly-typed accessors for nodes in your scenes.</Description>
+    <PackageTags>godot;source-generator;code-generation;game-development</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/MisinformedDNA/GodotNodeGenerator</RepositoryUrl>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <DevelopmentDependency>true</DevelopmentDependency>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -15,6 +27,14 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
 
 </Project>
