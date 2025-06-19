@@ -2,7 +2,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
-using System.Reflection;
 
 namespace GodotNodeGenerator.Tests
 {
@@ -409,15 +408,13 @@ script = ExtResource(""2_pscript"")
             {
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
-                // Add a reference to a fake Godot assembly - the executing assembly has mock Godot types
-                MetadataReference.CreateFromFile(Assembly.GetExecutingAssembly().Location)
             };
 
             var compilation = CSharpCompilation.Create(
                 "TestCompilation",
                 [syntaxTree],
                 references,
-                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));            // Create the generator and driver
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
             var generator = new NodeGenerator();
             ImmutableArray<ISourceGenerator> generators = [generator.AsSourceGenerator()];
             var driver = CSharpGeneratorDriver.Create(

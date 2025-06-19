@@ -2,7 +2,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
-using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace GodotNodeGenerator.Tests
@@ -263,19 +262,18 @@ namespace Test
             {
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
-                // Add a reference to a fake Godot assembly
-                MetadataReference.CreateFromFile(Assembly.GetExecutingAssembly().Location)
             };
 
             var compilation = CSharpCompilation.Create(
                 "TestCompilation",
                 [syntaxTree],
                 references,
-                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));            // Create the generator and driver
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
             var generator = new NodeGenerator();
+            ImmutableArray<ISourceGenerator> generators = [generator.AsSourceGenerator()];
             var driver = CSharpGeneratorDriver.Create(
-                generators: [generator.AsSourceGenerator()],
-                additionalTexts: additionalTexts);            // Run the generator
+                generators: generators,
+                additionalTexts: additionalTexts);
             driver = (CSharpGeneratorDriver)driver.RunGenerators(compilation);
 
             // Get the results
