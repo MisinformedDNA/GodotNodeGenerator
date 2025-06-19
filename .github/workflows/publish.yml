@@ -1,4 +1,4 @@
-name: Build, Test, Package and Publish
+name: Publish
 
 # Manual trigger with optional version input parameter
 on:
