@@ -1,3 +1,4 @@
+using GodotNodeGenerator.Tests.TestHelpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
