@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
+using GodotNodeGenerator.Tests.TestHelpers;
 
 namespace GodotNodeGenerator.Tests
 {
