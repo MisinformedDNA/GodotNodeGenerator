@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\GodotNodeGenerator\GodotNodeGenerator.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Analyzer Include="..\GodotNodeGenerator\bin\Debug\netstandard2.0\GodotNodeGenerator.dll" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AdditionalFiles Include="**/*.tscn" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="GodotSharp" Version="4.4.1" />
+	</ItemGroup>
+
+</Project>

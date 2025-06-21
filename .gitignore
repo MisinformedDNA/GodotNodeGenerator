@@ -344,3 +344,8 @@ healthchecksdb
 
 # Live Unit Testing
 *.lutconfig
+
+# Godot 4+ specific ignores
+.godot/
+/android/
+project-*.godot

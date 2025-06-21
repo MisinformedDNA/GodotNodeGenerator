@@ -9,16 +9,15 @@ namespace TestNamespace
     // Generated node accessors for TestClass
     public partial class TestClass
     {
-
         private Node2D? _Root;
-        
+
         /// <summary>
         /// Gets the Root node (path: "Root")
         /// </summary>
         /// <exception cref="InvalidCastException">Thrown when the node at the specified path is not of type Node2D.</exception>
         /// <exception cref="NullReferenceException">Thrown when the node is not found in the scene tree.</exception>
         [return: NotNull]
-        public Node2D Root 
+        public Node2D Root
         {
             get
             {
@@ -29,14 +28,14 @@ namespace TestNamespace
                     {
                         throw new NullReferenceException($"Node not found: Root");
                     }
-                    
+
                     _Root = node as Node2D;
                     if (_Root == null)
                     {
                         throw new InvalidCastException($"Node at path {node.GetPath()} is of type {node.GetType()}, not Node2D");
                     }
                 }
-                
+
                 return _Root;
             }
         }
@@ -54,7 +53,7 @@ namespace TestNamespace
                 node = _Root;
                 return true;
             }
-            
+
             var tempNode = GetNodeOrNull("Root");
             if (tempNode is Node2D typedNode)
             {
@@ -62,19 +61,19 @@ namespace TestNamespace
                 node = typedNode;
                 return true;
             }
-            
+
             return false;
         }
 
         private Sprite2D? _Child;
-        
+
         /// <summary>
         /// Gets the Child node (path: "Root/Child")
         /// </summary>
         /// <exception cref="InvalidCastException">Thrown when the node at the specified path is not of type Sprite2D.</exception>
         /// <exception cref="NullReferenceException">Thrown when the node is not found in the scene tree.</exception>
         [return: NotNull]
-        public Sprite2D Child 
+        public Sprite2D Child
         {
             get
             {
@@ -85,14 +84,14 @@ namespace TestNamespace
                     {
                         throw new NullReferenceException($"Node not found: Root/Child");
                     }
-                    
+
                     _Child = node as Sprite2D;
                     if (_Child == null)
                     {
                         throw new InvalidCastException($"Node at path {node.GetPath()} is of type {node.GetType()}, not Sprite2D");
                     }
                 }
-                
+
                 return _Child;
             }
         }
@@ -110,7 +109,7 @@ namespace TestNamespace
                 node = _Child;
                 return true;
             }
-            
+
             var tempNode = GetNodeOrNull("Root/Child");
             if (tempNode is Sprite2D typedNode)
             {
@@ -118,7 +117,7 @@ namespace TestNamespace
                 node = typedNode;
                 return true;
             }
-            
+
             return false;
         }
 
@@ -131,13 +130,13 @@ namespace TestNamespace
         {
             private readonly TestClass _owner;
             private readonly Node2D _node;
-            
+
             internal RootWrapper(TestClass owner, Node2D node)
             {
                 _owner = owner;
                 _node = node;
             }
-            
+
             /// <summary>
             /// Gets the underlying Godot Node2D node.
             /// </summary>

@@ -105,6 +105,74 @@ namespace TestNamespace
         }
 
         [Fact]
+        public void Generated_Code_Handles_File_Scoped_Namespace()
+        {
+            // Arrange: Create source and scene
+            var sourceCode = @"
+using Godot;
+using GodotNodeGenerator;
+
+namespace TestNamespace;
+
+[NodeGenerator(""FluentScene.tscn"")]
+public partial class FluentTest : Node
+{
+}
+";
+
+            var scenePath = "FluentScene.tscn";
+            var sceneContent = @"
+[gd_scene format=3]
+
+[node name=""Root"" type=""Node2D""]
+
+[node name=""Child"" type=""Sprite2D"" parent=""Root""]
+
+[node name=""GrandChild"" type=""Label"" parent=""Root/Child""]
+";
+
+            // Act: Generate the code
+            var generatedCode = RunSourceGenerator(sourceCode, [(scenePath, sceneContent)]);
+            var result = generatedCode.FirstOrDefault(f => f.HintName.Contains("FluentTest.g.cs")).SourceText.ToString();
+
+            // Assert
+            result.Should().Contain("namespace TestNamespace");
+        }
+
+        [Fact]
+        public void Generated_Code_Skips_Namespace_If_Not_Defined()
+        {
+            // Arrange: Create source and scene
+            var sourceCode = @"
+using Godot;
+using GodotNodeGenerator;
+
+[NodeGenerator(""FluentScene.tscn"")]
+public partial class FluentTest : Node
+{
+}
+";
+
+            var scenePath = "FluentScene.tscn";
+            var sceneContent = @"
+[gd_scene format=3]
+
+[node name=""Root"" type=""Node2D""]
+
+[node name=""Child"" type=""Sprite2D"" parent=""Root""]
+
+[node name=""GrandChild"" type=""Label"" parent=""Root/Child""]
+";
+
+            // Act: Generate the code
+            var generatedCode = RunSourceGenerator(sourceCode, [(scenePath, sceneContent)]);
+            var result = generatedCode.FirstOrDefault(f => f.HintName.Contains("FluentTest.g.cs")).SourceText.ToString();
+
+            // Assert
+            result.Should().NotContain("namespace");
+        }
+
+        [Fact]
         public Task Should_Report_Diagnostics_When_Scene_File_Missing()
         {
             // Arrange: Source with a missing scene file

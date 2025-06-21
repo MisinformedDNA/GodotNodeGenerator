@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36109.1 d17.14
+VisualStudioVersion = 17.14.36109.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GodotNodeGenerator", "GodotNodeGenerator\GodotNodeGenerator.csproj", "{0A00442E-FB71-42AA-ABAE-ED3891C3A155}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GodotNodeGenerator.Tests", "GodotNodeGenerator.Tests\GodotNodeGenerator.Tests.csproj", "{4883C0DB-42FC-49BB-8D3D-356D564274B5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GodotNodeGenerator.IntegrationTest", "GodotNodeGenerator.IntegrationTest\GodotNodeGenerator.IntegrationTest.csproj", "{220ECCF3-0367-4F07-B09D-E8086AC7D0B5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{4883C0DB-42FC-49BB-8D3D-356D564274B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4883C0DB-42FC-49BB-8D3D-356D564274B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4883C0DB-42FC-49BB-8D3D-356D564274B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{220ECCF3-0367-4F07-B09D-E8086AC7D0B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{220ECCF3-0367-4F07-B09D-E8086AC7D0B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{220ECCF3-0367-4F07-B09D-E8086AC7D0B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{220ECCF3-0367-4F07-B09D-E8086AC7D0B5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
