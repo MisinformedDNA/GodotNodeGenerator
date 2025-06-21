@@ -13,10 +13,7 @@ namespace GodotNodeGenerator
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            // Register the attribute source
-            context.RegisterPostInitializationOutput(ctx => ctx.AddSource(
-                "NodeGeneratorAttribute.g.cs",
-                SourceText.From(SourceGenerationHelper.AttributeText, Encoding.UTF8)));            // Create a pipeline for all C# classes with our attribute
+            // Create a pipeline for all C# classes with our attribute
             var classDeclarations = context.SyntaxProvider
                 .CreateSyntaxProvider(
                     predicate: static (s, _) => IsTargetForGeneration(s),
