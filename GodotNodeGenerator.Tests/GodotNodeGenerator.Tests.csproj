@@ -32,11 +32,4 @@
 		<Using Include="Xunit" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<Compile Remove="**/*.received.cs" />
-		<None Include="**/*.received.cs" />
-		<Compile Remove="**/*.verified.cs" />
-		<None Include="**/*.verified.cs" />
-	</ItemGroup>
-
 </Project>

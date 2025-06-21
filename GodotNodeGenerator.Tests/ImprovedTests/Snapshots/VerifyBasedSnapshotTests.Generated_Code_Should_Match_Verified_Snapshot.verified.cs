@@ -154,7 +154,7 @@ namespace TestNamespace
         /// <summary>
         /// Gets a wrapper for the Root node that provides access to its child nodes.
         /// </summary>
-        public RootWrapper Root
+        public RootWrapper RootNodes
         {
             get
             {

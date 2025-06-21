@@ -44,7 +44,7 @@ current = true";
         }
 
         [Fact]
-        public void ParseScene_FileNotFound_ReturnsNodesFromDummyContent()
+        public void ParseScene_FileNotFound_ReturnsNodesEmptyString()
         {
             // Arrange
             var scenePath = "NonExistentScene.tscn";
@@ -53,25 +53,21 @@ current = true";
             // Act
             var nodes = SceneParser.ParseScene(scenePath, additionalFiles);
 
-            // Assert - Should not be empty, as it returns dummy content
-            Assert.NotEmpty(nodes);
-            // The dummy content contains a Root node
-            Assert.Contains(nodes, n => n.Name == "Root" && n.Type == "Node2D");
+            // Assert
+            Assert.Empty(nodes);
         }
 
         [Fact]
-        public void ParseScene_NullAdditionalFiles_ReturnsDummyContent()
+        public void ParseScene_NullAdditionalFiles_ReturnsEmptyString()
         {
             // Arrange
             var scenePath = "TestScene.tscn";
 
-            // Act - Pass null for additionalFiles to test fallback behavior
+            // Act
             var nodes = SceneParser.ParseScene(scenePath, null);
 
-            // Assert - Should return nodes from dummy content
-            Assert.NotEmpty(nodes);
-            // The dummy content contains a Root node
-            Assert.Contains(nodes, n => n.Name == "Root" && n.Type == "Node2D");
+            // Assert
+            Assert.Empty(nodes);
         }
 
         [Fact]
@@ -133,8 +129,6 @@ current = true";
 
             // Assert
             Assert.True(diagnosticReported, "Diagnostic should be reported for missing scene file");
-            // Note: The implementation returns dummy content, not an empty list
-            Assert.NotEmpty(nodes);
         }
     }
 }

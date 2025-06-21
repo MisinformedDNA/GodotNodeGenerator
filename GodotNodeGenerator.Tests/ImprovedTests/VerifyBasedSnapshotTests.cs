@@ -105,27 +105,17 @@ namespace TestNamespace
         }
 
         [Fact]
-        public Task Should_Verify_Diagnostics_From_Source_Generator()
+        public Task Should_Report_Diagnostics_When_Scene_File_Missing()
         {
             // Arrange: Source with a missing scene file
-            var sourceCode = @"
-using Godot;
-using GodotNodeGenerator;
-
-namespace TestNamespace
-{
-    [NodeGenerator(""MissingFile.tscn"")]
-    public partial class DiagnosticsTest : Node
-    {
-    }
-}";
+            var sourceCode = GetSourceCodeWithMissingSceneFile();
 
             // Act: Run the generator without providing the scene file
-            var (outputs, diagnostics) = RunSourceGeneratorWithDiagnostics(sourceCode, []);
+            var (_, diagnostics) = RunSourceGeneratorWithDiagnostics(sourceCode, []);
 
-            // Assert: Create a snapshot of both the diagnostics and the generated code
-            var diagnosticsVerifySettings = new VerifySettings();
-            diagnosticsVerifySettings.UseDirectory("Snapshots");
+            // Assert: Create a snapshot of the diagnostics
+            var settings = new VerifySettings();
+            settings.UseDirectory("Snapshots");
 
             // Verify the diagnostics - focus on what matters
             var diagnosticsToVerify = diagnostics.Select(d => new
@@ -136,19 +126,46 @@ namespace TestNamespace
                 Location = d.Location.GetLineSpan().ToString()
             }).ToList();
 
-            // Also verify the generated code for the missing scene case
+            return Verifier.Verify(diagnosticsToVerify, settings);
+        }
+
+        [Fact]
+        public void Should_Not_Generate_Code_When_Scene_File_Missing()
+        {
+            // Arrange: Source with a missing scene file
+            var sourceCode = GetSourceCodeWithMissingSceneFile();
+
+            // Act: Run the generator without providing the scene file
+            var (outputs, _) = RunSourceGeneratorWithDiagnostics(sourceCode, []);
+
+            // Get the generated code only if an output file exists
+            string generatedCode = string.Empty;
             var outputFile = outputs.FirstOrDefault(f => f.HintName.Contains("DiagnosticsTest.g.cs"));
-            var generatedCode = outputFile.SourceText != null
-                              ? outputFile.SourceText.ToString()
-                              : "No code was generated.";
+            if (!string.IsNullOrEmpty(outputFile.HintName) && outputFile.SourceText != null)
+            {
+                generatedCode = outputFile.SourceText.ToString();
+            }
 
-            var codeVerifySettings = new VerifySettings();
-            codeVerifySettings.UseDirectory("Snapshots");
+            // Assert: Should be empty since no code should be generated
+            generatedCode.Should().BeEmpty();
+        }
 
-            return Task.WhenAll(
-                Verifier.Verify(diagnosticsToVerify, diagnosticsVerifySettings),
-                Verifier.Verify(generatedCode, "cs", codeVerifySettings)
-            );
+        /// <summary>
+        /// Helper method to get common source code for missing scene file tests
+        /// </summary>
+        private string GetSourceCodeWithMissingSceneFile()
+        {
+            return @"
+using Godot;
+using GodotNodeGenerator;
+
+namespace TestNamespace
+{
+    [NodeGenerator(""MissingFile.tscn"")]
+    public partial class DiagnosticsTest : Node
+    {
+    }
+}";
         }
 
         /// <summary>

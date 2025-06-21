@@ -427,7 +427,7 @@ namespace {namespaceName}
 {indent}/// <summary>
 {indent}/// Gets a wrapper for the {node.Name} node that provides access to its child nodes.
 {indent}/// </summary>
-{indent}public {safeName}Wrapper {safeName}
+{indent}public {safeName}Wrapper {safeName}Nodes
 {indent}{{
 {indent}    get
 {indent}    {{

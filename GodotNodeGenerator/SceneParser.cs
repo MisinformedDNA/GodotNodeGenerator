@@ -28,17 +28,6 @@ namespace GodotNodeGenerator
                 var sceneContent = ReadSceneContent(scenePath, additionalFiles, reportDiagnostic);
                 if (string.IsNullOrEmpty(sceneContent))
                 {
-                    reportDiagnostic?.Invoke(Diagnostic.Create(
-                        new DiagnosticDescriptor(
-                            id: "GNGEN001",
-                            title: "Scene file not found or empty",
-                            messageFormat: "Could not find or read scene file: {0}",
-                            category: "SceneParser",
-                            DiagnosticSeverity.Warning,
-                            isEnabledByDefault: true),
-                        location: null,
-                        scenePath));
-
                     return [];
                 }
 
@@ -68,10 +57,10 @@ namespace GodotNodeGenerator
             IEnumerable<AdditionalText>? additionalFiles,
             Action<Diagnostic>? reportDiagnostic = null)
         {
-            // If no additional files provided, return dummy data
+            // If no additional files provided, return empty string
             if (additionalFiles == null)
             {
-                return GetDummySceneContent();
+                return string.Empty;
             }
 
             // Try to find the scene file in the additional files
@@ -90,12 +79,12 @@ namespace GodotNodeGenerator
                     location: null,
                     scenePath));
 
-                return GetDummySceneContent();
+                return string.Empty;
             }
 
             // Read the content of the scene file
             var sceneContent = sceneFile.GetText()?.ToString();
-            return sceneContent ?? GetDummySceneContent();
+            return sceneContent ?? string.Empty;
         }
 
         // Helper method to find the scene file in the additional files
@@ -124,33 +113,6 @@ namespace GodotNodeGenerator
             return result;
         }
 
-        // Provides dummy scene content for testing or when the file is not found
-        private static string GetDummySceneContent()
-        {
-            return @"[gd_scene load_steps=4 format=3 uid=""uid://c1j5hxnhctilu""]
-
-[ext_resource type=""Script"" path=""res://scripts/Player.cs"" id=""1_kqm1w""]
-[ext_resource type=""Texture2D"" uid=""uid://c0ogahvvkpi8g"" path=""res://assets/player.png"" id=""2_5scav""]
-
-[node name=""Root"" type=""Node2D""]
-
-[node name=""Player"" type=""CharacterBody2D"" parent="".""]
-script = ExtResource(""1_kqm1w"")
-
-[node name=""Sprite"" type=""Sprite2D"" parent=""Player""]
-texture = ExtResource(""2_5scav"")
-
-[node name=""Camera"" type=""Camera2D"" parent=""Player""]
-current = true
-
-[node name=""UI"" type=""CanvasLayer""]
-
-[node name=""HealthBar"" type=""ProgressBar"" parent=""UI""]
-anchor_right = 1.0
-anchor_bottom = 0.05
-value = 100.0";
-        }
-
         public static List<NodeInfo> ParseSceneContent(string content)
         {
             var nodes = new List<NodeInfo>();
@@ -160,12 +122,24 @@ value = 100.0";
             var nodeScripts = new Dictionary<string, string>();
             var nodeProperties = new Dictionary<string, Dictionary<string, string>>();
 
-            // Parse content using a state machine approach
+            var extResourceMap = new Dictionary<string, string>(); // id -> path
             var lines = content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                var trimmed = line.Trim();
+                if (trimmed.StartsWith("[ext_resource "))
+                {
+                    // Example: [ext_resource type="Script" path="res://scripts/Player.cs" id="1_player"]
+                    var path = ExtractAttributeValue(trimmed, "path");
+                    var id = ExtractAttributeValue(trimmed, "id");
+                    if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(path))
+                        extResourceMap[id] = path;
+                }
+                // Stop parsing ext_resources when we hit the first [node ...]
+                if (trimmed.StartsWith("[node ")) break;
+            }
 
             string currentNode = "";
-
-            // Process each line
             for (int i = 0; i < lines.Length; i++)
             {
                 string line = lines[i].Trim();
@@ -184,7 +158,7 @@ value = 100.0";
                 // Check for script assignment
                 else if (!string.IsNullOrEmpty(currentNode) && line.StartsWith("script = "))
                 {
-                    var scriptPath = ExtractResourcePath(line);
+                    var scriptPath = ExtractResourcePath(line, extResourceMap);
                     if (!string.IsNullOrEmpty(scriptPath))
                     {
                         nodeScripts[currentNode] = scriptPath;
@@ -228,6 +202,18 @@ value = 100.0";
             }
 
             return nodes;
+        }
+
+        // Helper to extract attribute value from a line like [ext_resource ...]
+        private static string? ExtractAttributeValue(string line, string attribute)
+        {
+            var search = attribute + "=\"";
+            var start = line.IndexOf(search);
+            if (start == -1) return null;
+            start += search.Length;
+            var end = line.IndexOf('"', start);
+            if (end == -1) return null;
+            return line[start..end];
         }
 
         public static (string Name, string Type, string Parent)? ParseNodeDeclaration(string line)
@@ -347,7 +333,7 @@ value = 100.0";
         /// <summary>
         /// Extracts a resource path from a line like "script = ExtResource("1_kqm1w")" or "script = Resource("res://path/to/script.cs")"
         /// </summary>
-        public static string ExtractResourcePath(string line)
+        public static string ExtractResourcePath(string line, Dictionary<string, string>? extResourceMap = null)
         {
             // Handle direct resource path
             if (line.Contains("\"res://") || line.Contains("\"user://"))
@@ -362,10 +348,17 @@ value = 100.0";
             }
 
             // Handle ExtResource reference
-            if (line.Contains("ExtResource("))
+            if (line.Contains("ExtResource(") && extResourceMap != null)
             {
-                // For now, we can't resolve the actual path from the resource ID
-                // In a real implementation, you would track resource declarations and resolve them
+                // Extract the ID from ExtResource("1_player")
+                var idStart = line.IndexOf('"');
+                var idEnd = line.LastIndexOf('"');
+                if (idStart >= 0 && idEnd > idStart)
+                {
+                    var id = line.Substring(idStart + 1, idEnd - idStart - 1);
+                    if (extResourceMap.TryGetValue(id, out var path))
+                        return path;
+                }
                 return "ExtResourceReference";
             }
 
