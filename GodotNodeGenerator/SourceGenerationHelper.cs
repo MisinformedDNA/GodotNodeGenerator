@@ -17,7 +17,7 @@ namespace GodotNodeGenerator
         public string Path { get; set; } = string.Empty;
         public string GodotType { get; set; } = string.Empty;
         public NodeTreeItem? Parent { get; set; }
-        public Dictionary<string, NodeTreeItem> Children { get; } = new Dictionary<string, NodeTreeItem>();
+        public Dictionary<string, NodeTreeItem> Children { get; } = [];
     }
 
     public static class SourceGenerationHelper
@@ -81,7 +81,6 @@ namespace GodotNodeGenerator
             sb.AppendLine($"{indent}{{");
 
             bool firstField = true;
-            int nodeCount = nodeInfos.Count;
             int nodeIndex = 0;
             foreach (var nodeInfo in nodeInfos)
             {
@@ -330,7 +329,7 @@ namespace GodotNodeGenerator
                 var lastSlash = node.Path.LastIndexOf('/');
                 if (lastSlash <= 0) continue;
                 
-                var parentPath = node.Path.Substring(0, lastSlash);
+                var parentPath = node.Path[..lastSlash];
                 
                 // Add as child to parent
                 if (nodeTree.TryGetValue(parentPath, out var parentNode))
@@ -346,7 +345,7 @@ namespace GodotNodeGenerator
         // Generate a wrapper class for a node and its children
         private static void GenerateNodeWrapperClass(StringBuilder sb, NodeTreeItem node, int indentLevel, string rootClassName)
         {
-            string indent = new string(' ', indentLevel * 4);
+            string indent = new(' ', indentLevel * 4);
             var godotType = node.GodotType;
             var nodeName = node.Name;
             var safeName = MakeSafeIdentifier(nodeName, rootClassName);
@@ -425,9 +424,8 @@ namespace GodotNodeGenerator
         // Generate a property for a node in the parent class
         private static void GenerateNodeProperty(StringBuilder sb, NodeTreeItem node, int indentLevel, string className)
         {
-            string indent = new string(' ', indentLevel * 4);
+            string indent = new(' ', indentLevel * 4);
             var safeName = MakeSafeIdentifier(node.Name, className);
-            var godotType = node.GodotType;
             
             // Skip if node has no children
             if (node.Children.Count == 0)
@@ -462,6 +460,6 @@ namespace GodotNodeGenerator
         public string Type { get; set; } = "Node";
         public string? Script { get; set; } = null;
         public bool IsExportedProperty { get; set; } = false;
-        public Dictionary<string, string> Properties { get; set; } = new Dictionary<string, string>();
+        public Dictionary<string, string> Properties { get; set; } = [];
     }
 }

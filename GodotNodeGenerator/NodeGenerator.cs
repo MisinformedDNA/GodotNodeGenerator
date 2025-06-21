@@ -112,7 +112,7 @@ namespace GodotNodeGenerator
                 }
 
                 // Parse the scene using AdditionalFiles
-                var nodeInfo = SceneParser.ParseScene(scenePath, additionalFiles, context.ReportDiagnostic);
+                var nodeInfo = SceneParser.ParseScene(scenePath!, additionalFiles, context.ReportDiagnostic);
 
                 // If no nodes are found (scene file missing or empty), skip code generation
                 if (nodeInfo == null || nodeInfo.Count == 0)

@@ -133,7 +133,7 @@ namespace GodotNodeGenerator
                     var path = ExtractAttributeValue(trimmed, "path");
                     var id = ExtractAttributeValue(trimmed, "id");
                     if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(path))
-                        extResourceMap[id] = path;
+                        extResourceMap[id!] = path!;    // Null-forgiving operator used here due to invalid analysis
                 }
                 // Stop parsing ext_resources when we hit the first [node ...]
                 if (trimmed.StartsWith("[node ")) break;
@@ -287,7 +287,7 @@ namespace GodotNodeGenerator
             // Return the node info if we have at least a name and type
             if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(type))
             {
-                return (name, type, parent);
+                return (name!, type!, parent);
             }
 
             return null;
