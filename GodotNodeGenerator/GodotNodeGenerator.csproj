@@ -6,10 +6,11 @@
     <LangVersion>latest</LangVersion>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
 
     <!-- Package metadata -->
     <PackageId>GodotNodeGenerator</PackageId>
-    <Version>0.0.7-alpha</Version>
+    <Version>0.0.8-alpha</Version>
     <Authors>MisinformedDNA</Authors>
     <Company></Company>
     <Description>C# source generator for Godot 4.x that creates strongly-typed accessors for nodes in your scenes.</Description>
@@ -17,7 +18,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/MisinformedDNA/GodotNodeGenerator</RepositoryUrl>
-    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeBuildOutput>true</IncludeBuildOutput>
     <DevelopmentDependency>true</DevelopmentDependency>
   </PropertyGroup>
 
