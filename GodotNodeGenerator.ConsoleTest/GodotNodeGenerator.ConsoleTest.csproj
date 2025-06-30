@@ -8,11 +8,7 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\GodotNodeGenerator\GodotNodeGenerator.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Analyzer Include="..\GodotNodeGenerator\bin\Debug\netstandard2.0\GodotNodeGenerator.dll" />
+		<ProjectReference Include="..\GodotNodeGenerator\GodotNodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
 	</ItemGroup>
 
 	<ItemGroup>
