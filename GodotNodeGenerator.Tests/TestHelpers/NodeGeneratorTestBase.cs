@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
+using GodotNodeGenerator;
 
 namespace GodotNodeGenerator.Tests.TestHelpers
 {
@@ -38,20 +39,40 @@ namespace GodotNodeGenerator.Tests.TestHelpers
                 [syntaxTree],
                 references,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-            var generator = new NodeGenerator();
-            ImmutableArray<ISourceGenerator> generators = [generator.AsSourceGenerator()];
+                
+            // Use our NodeGeneratorAdapter instead of raw NodeGenerator
+            // Create the adapter directly and don't use the AsSourceGenerator extension method
+            var generator = new NodeGeneratorAdapter(new NodeGenerator());
+            Console.WriteLine($"Created NodeGeneratorAdapter");
+            
+            // Create a single-item array with our generator
+            ImmutableArray<ISourceGenerator> generators = ImmutableArray.Create<ISourceGenerator>(generator);
+            Console.WriteLine($"Set up generators array with {generators.Length} generators");
+            
+            // Set up generator driver with additional texts
             var driver = CSharpGeneratorDriver.Create(
                 generators: generators,
-                additionalTexts: additionalTexts);
+                additionalTexts: additionalTexts,
+                parseOptions: (CSharpParseOptions)compilation.SyntaxTrees.First().Options,
+                optionsProvider: null);
+            
+            Console.WriteLine($"Created generator driver");
+                
             driver = (CSharpGeneratorDriver)driver.RunGenerators(compilation);
 
             // Get the results
             var runResult = driver.GetRunResult();
+            
+            // Add debug output
+            Console.WriteLine($"Generator run completed with {runResult.GeneratedTrees.Length} generated files.");
+            
             // Get all generated sources
             return [.. runResult.GeneratedTrees
                 .Select(t => {
                     var sourceText = SourceText.From(t.GetText().ToString());
-                    return (Path.GetFileName(t.FilePath), sourceText);
+                    var hintName = Path.GetFileName(t.FilePath);
+                    Console.WriteLine($"Generated file: {hintName}");
+                    return (hintName, sourceText);
                 })];
         }
 
@@ -95,7 +116,22 @@ namespace {namespaceName}
             string expectedOutputFile)
         {
             var outputs = RunSourceGenerator(sourceCode, additionalFiles);
-            var generatedFile = outputs.FirstOrDefault(f => f.HintName.Contains(expectedOutputFile));
+            
+            // Debug output to see what files were generated
+            Console.WriteLine($"Looking for {expectedOutputFile}. Generated files:");
+            foreach (var file in outputs)
+            {
+                Console.WriteLine($" - {file.HintName}");
+            }
+            
+            // Try to find the file by exact match first
+            var generatedFile = outputs.FirstOrDefault(f => f.HintName == expectedOutputFile);
+            
+            // If not found by exact match, try contains
+            if (generatedFile.SourceText == null)
+            {
+                generatedFile = outputs.FirstOrDefault(f => f.HintName.Contains(expectedOutputFile));
+            }
             
             // If the file isn't found, throw a descriptive exception
             if (generatedFile.SourceText == null)

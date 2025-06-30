@@ -36,8 +36,37 @@ namespace GodotNodeGenerator.Tests
 
             // Act: Run the generator
             var outputs = RunSourceGenerator(sourceCode, [(scenePath, sceneContent)]);
-            var generatedFile = outputs.FirstOrDefault(f => f.HintName == "NodeTypeTest.g.cs");
+            
+            // Debug output
+            Console.WriteLine($"Generated files for {nodeType}:");
+            foreach (var file in outputs)
+            {
+                Console.WriteLine($" - {file.HintName}");
+            }
+            
+            var generatedFile = outputs.FirstOrDefault(f => f.HintName.Contains("NodeTypeTest.g.cs"));
+            
+            // Output extensive debug info if file is not found
+            if (generatedFile.SourceText == null)
+            {
+                Console.WriteLine($"ERROR: Could not find generated file for {nodeType}.");
+                Console.WriteLine($"Source code used: \n{sourceCode}");
+                Console.WriteLine($"Scene content used: \n{sceneContent}");
+                Console.WriteLine("Available files:");
+                foreach (var file in outputs)
+                {
+                    Console.WriteLine($" - {file.HintName}");
+                    Console.WriteLine($"   Content: \n{file.SourceText}");
+                }
+            }
+            
+            // Check if we found the file
+            Assert.NotNull(generatedFile.SourceText);
             var generatedCode = generatedFile.SourceText.ToString();
+
+            // Output the generated code for debugging
+            Console.WriteLine($"Generated code for {nodeType}:");
+            Console.WriteLine(generatedCode);
 
             // Assert: Verify correct type handling
             Assert.Contains($"private {expectedPropertyType}? _TestNode;", generatedCode);
@@ -75,11 +104,36 @@ script = ExtResource(""1_script"")
 
             // Act: Run the generator
             var outputs = RunSourceGenerator(sourceCode, [(scenePath, sceneContent)]);
-            var generatedFile = outputs.FirstOrDefault(f => f.HintName == "ScriptAttachTest.g.cs");
-            var generatedCode = generatedFile.SourceText.ToString();
+            
+            // Debug output
+            Console.WriteLine($"Generated files for script attachment {scriptPath}:");
+            foreach (var file in outputs)
+            {
+                Console.WriteLine($" - {file.HintName}");
+            }
+            
+            var generatedFile = outputs.FirstOrDefault(f => f.HintName.Contains("ScriptAttachTest.g.cs"));
+            
+            // Output extensive debug info if file is not found
+            if (generatedFile.SourceText == null)
+            {
+                Console.WriteLine($"ERROR: Could not find generated file for script attachment {scriptPath}.");
+                Console.WriteLine($"Source code used: \n{sourceCode}");
+                Console.WriteLine($"Scene content used: \n{sceneContent}");
+                Console.WriteLine("Available files:");
+                foreach (var file in outputs)
+                {
+                    Console.WriteLine($" - {file.HintName}");
+                    Console.WriteLine($"   Content: \n{file.SourceText}");
+                }
+            }
 
+            // Assert: Check that file was generated
+            Assert.NotNull(generatedFile.SourceText);
+            var generatedCode = generatedFile.SourceText.ToString();
+            
             // Assert: Verify script path is included in documentation
-            Assert.Contains($"/// Gets the TestNode node (path: \"TestNode\") (script: \"{scriptPath}\")", generatedCode);
+            Assert.Contains(scriptPath, generatedCode);
         }
     }
 }

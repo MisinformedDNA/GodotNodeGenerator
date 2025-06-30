@@ -1,0 +1,14 @@
+﻿[
+  {
+    Id: GNGEN001,
+    Severity: Warning,
+    Message: Could not find scene file: DiagnosticsTest.tscn,
+    Location: : (0,0)-(0,0)
+  },
+  {
+    Id: GNGEN001,
+    Severity: Warning,
+    Message: Could not find scene file: DiagnosticsTest.tscn,
+    Location: : (6,4)-(9,5)
+  }
+]

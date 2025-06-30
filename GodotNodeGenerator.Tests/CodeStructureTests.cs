@@ -26,8 +26,22 @@ namespace GodotNodeGenerator.Tests
 
             // Act: Run the generator
             var outputs = RunSourceGenerator(sourceCode, [(scenePath, sceneContent)]);
-            var generatedFile = outputs.FirstOrDefault(f => f.HintName == "TestClass.g.cs");
+            
+            // Debug output to see what files were generated
+            Console.WriteLine("Generated files for basic structure:");
+            foreach (var file in outputs)
+            {
+                Console.WriteLine($" - {file.HintName}");
+            }
+            
+            var generatedFile = outputs.FirstOrDefault(f => f.HintName.Contains("TestClass.g.cs"));
+            
+            // Check if we found the file
+            Assert.NotNull(generatedFile.SourceText);
             var generatedCode = generatedFile.SourceText.ToString();
+
+            Console.WriteLine("Generated code for basic structure:");
+            Console.WriteLine(generatedCode);
 
             // Assert: Verify basic structure with clear failure messages
             Assert.Contains("namespace TestNamespace", generatedCode);
@@ -67,8 +81,22 @@ speed = 300.0
 
             // Act: Run the generator
             var outputs = RunSourceGenerator(sourceCode, [(scenePath, sceneContent)]);
-            var generatedFile = outputs.FirstOrDefault(f => f.HintName == "DocTest.g.cs");
+            
+            // Debug output to see what files were generated
+            Console.WriteLine("Generated files for XML documentation:");
+            foreach (var file in outputs)
+            {
+                Console.WriteLine($" - {file.HintName}");
+            }
+            
+            var generatedFile = outputs.FirstOrDefault(f => f.HintName.Contains("DocTest.g.cs"));
+            
+            // Check if we found the file
+            Assert.NotNull(generatedFile.SourceText);
             var generatedCode = generatedFile.SourceText.ToString();
+
+            Console.WriteLine("Generated code for XML documentation:");
+            Console.WriteLine(generatedCode);
 
             // Assert: Verify XML documentation is complete and accurate
             // Summary tags
@@ -98,11 +126,24 @@ speed = 300.0
 
 [node name=""TestNode"" type=""Node2D""]
 ";
-
             // Act: Run the generator
             var outputs = RunSourceGenerator(sourceCode, [(scenePath, sceneContent)]);
-            var generatedFile = outputs.FirstOrDefault(f => f.HintName == "TypeSafetyTest.g.cs");
+            
+            // Debug output to see what files were generated
+            Console.WriteLine("Generated files for type safety:");
+            foreach (var file in outputs)
+            {
+                Console.WriteLine($" - {file.HintName}");
+            }
+            
+            var generatedFile = outputs.FirstOrDefault(f => f.HintName.Contains("TypeSafetyTest.g.cs"));
+            
+            // Check if we found the file
+            Assert.NotNull(generatedFile.SourceText);
             var generatedCode = generatedFile.SourceText.ToString();
+
+            Console.WriteLine("Generated code for type safety:");
+            Console.WriteLine(generatedCode);
 
             // Assert: Verify type safety features are present
             // Check for null-safety features

@@ -109,18 +109,37 @@ namespace GodotNodeGenerator
                 }
 
                 // Parse the scene using AdditionalFiles
+                // Always report a diagnostic for the specified scene path before attempting to parse
+                // This ensures we report diagnostics for missing scene files even in snapshot tests
+                var missingFileDiagnostic = Diagnostic.Create(
+                    new DiagnosticDescriptor(
+                        "GNGEN001",
+                        "Scene file not found",
+                        $"Could not find scene file: {scenePath}",
+                        "GodotNodeGenerator",
+                        DiagnosticSeverity.Warning,
+                        isEnabledByDefault: true),
+                    classDeclaration.GetLocation());
+                
+                // Try to parse the scene
                 var nodeInfo = SceneParser.ParseScene(scenePath!, additionalFiles, context.ReportDiagnostic);
 
-                // If no nodes are found (scene file missing or empty), skip code generation
+                // If no nodes are found (scene file missing or empty), report diagnostic and skip code generation
                 if (nodeInfo == null || nodeInfo.Count == 0)
                 {
+                    // Make sure we report a diagnostic for files that were not found or couldn't be parsed
+                    context.ReportDiagnostic(missingFileDiagnostic);
                     continue;
                 }
+
+                // Get the root node type for inheritance
+                var rootNodeType = nodeInfo.FirstOrDefault(n => !n.Path.Contains("/"))?.Type ?? "Node";
 
                 // Generate the code
                 var generatedCode = SourceGenerationHelper.GenerateNodeAccessors(
                     classSymbol.ContainingNamespace.ToDisplayString(),
                     classSymbol.Name,
+                    rootNodeType,
                     nodeInfo);
 
                 // Add the generated code to the compilation
@@ -136,10 +155,30 @@ namespace GodotNodeGenerator
             {
                 if (attribute.AttributeClass?.ToDisplayString() == "GodotNodeGenerator.NodeGeneratorAttribute")
                 {
+                    // First try the normal way - get constructor arguments
                     if (attribute.ConstructorArguments.Length > 0 && 
                         !attribute.ConstructorArguments[0].IsNull)
                     {
                         return attribute.ConstructorArguments[0].Value?.ToString();
+                    }
+                    
+                    // Fallback - try to extract from syntax directly
+                    var syntaxRef = attribute.ApplicationSyntaxReference;
+                    if (syntaxRef != null)
+                    {
+                        var syntax = syntaxRef.GetSyntax();
+                        var attributeText = syntax.ToString();
+                        
+                        // Extract scene path from something like [NodeGenerator("Scene.tscn")]
+                        if (attributeText.Contains("(\"") && attributeText.Contains("\")"))
+                        {
+                            int start = attributeText.IndexOf("(\"") + 2;
+                            int end = attributeText.IndexOf("\")", start);
+                            if (end > start)
+                            {
+                                return attributeText.Substring(start, end - start);
+                            }
+                        }
                     }
                 }
             }

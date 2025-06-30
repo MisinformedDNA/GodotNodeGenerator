@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Generator Debug",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "dotnet",
+            "args": [
+                "build",
+                "${workspaceFolder}/GodotNodeGenerator.IntegrationTest/GodotNodeGenerator.IntegrationTest.csproj",
+                "/p:EmitCompilerGeneratedFiles=true",
+                "/p:CompilerGeneratedFilesOutputPath=.generated"
+            ],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        }
+    ]
+}

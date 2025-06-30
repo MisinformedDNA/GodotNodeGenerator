@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 
 namespace GodotNodeGenerator.Tests
 {
-    public class SimplifiedNestedClassTest
+    public class SimplifiedNestedClassTest : NodeGeneratorTestBase
     {
         [Fact]
         public void Simple_Test_For_Nested_Access()
@@ -39,58 +39,30 @@ namespace TestNamespace
 [node name=""Label"" type=""Label"" parent=""MainPanel""]
 ";
 
-            // Run the generator
+            // Run the generator using the base class helper
             var outputs = RunSourceGenerator(sourceCode, [(scenePath, sceneContent)]);
+            
+            // Debug output
+            Console.WriteLine("Generated files for simple nested class test:");
+            foreach (var file in outputs)
+            {
+                Console.WriteLine($" - {file.HintName}");
+            }
 
             // Get the generated code
-            var generatedFile = outputs.FirstOrDefault(f => f.HintName == "SimpleTest.g.cs");
+            var generatedFile = outputs.FirstOrDefault(f => f.HintName.Contains("SimpleTest.g.cs"));
+            
+            // Check if we found the file
+            Assert.NotNull(generatedFile.SourceText);
             var generatedCode = generatedFile.SourceText.ToString();
 
             // Output the generated code to make debugging easier
+            Console.WriteLine("Generated code for simple nested class:");
             Console.WriteLine(generatedCode);
 
             // Basic assertions
             Assert.Contains("public class MainPanelWrapper", generatedCode);
             Assert.Contains("public Label Label", generatedCode);
-        }
-
-        private static List<(string HintName, SourceText SourceText)> RunSourceGenerator(
-            string sourceCode,
-            IEnumerable<(string Path, string Content)> additionalFiles)
-        {
-            // Create a collection of additional files
-            var additionalTexts = additionalFiles.Select(
-                file => new MockAdditionalText(file.Path, file.Content))
-                .ToImmutableArray<AdditionalText>();
-
-            // Create compilation for the source code
-            var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
-            var references = new List<MetadataReference>
-            {
-                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
-            };
-
-            var compilation = CSharpCompilation.Create(
-                "TestCompilation",
-                [syntaxTree],
-                references,
-                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-            var generator = new NodeGenerator();
-            ImmutableArray<ISourceGenerator> generators = [generator.AsSourceGenerator()];
-            var driver = CSharpGeneratorDriver.Create(
-                generators: generators,
-                additionalTexts: additionalTexts);
-            driver = (CSharpGeneratorDriver)driver.RunGenerators(compilation);
-
-            // Get the results
-            var runResult = driver.GetRunResult();
-            // Get all generated sources
-            return [.. runResult.GeneratedTrees
-                .Select(t => {
-                    var sourceText = SourceText.From(t.GetText().ToString());
-                    return (Path.GetFileName(t.FilePath), sourceText);
-                })];
         }
     }
 }

@@ -3,10 +3,11 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
 using GodotNodeGenerator.Tests.TestHelpers;
+using Xunit;
 
 namespace GodotNodeGenerator.Tests
 {
-    public partial class NodeGeneratorTests
+    public class NodeGeneratorTests
     {
         [Fact]
         public void TestNodeInfoParsing()
@@ -89,12 +90,28 @@ current = true
 ";
 
             // Act: Run the generator
+            Console.WriteLine("Running source generator");
             var outputs = RunSourceGenerator(sourceCode, [(scenePath, sceneContent)]);
+            Console.WriteLine($"Received {outputs.Count} output files");
 
             // Assert: Check that generated code matches our expectations
-            var generatedFile = outputs.FirstOrDefault(f => f.HintName == "TestPlayer.g.cs");
+            Console.WriteLine("Looking for TestPlayer.g.cs file");
+            var generatedFile = outputs.FirstOrDefault(f => f.Item1 == "TestPlayer.g.cs");
+            
+            if (generatedFile == default)
+            {
+                Console.WriteLine("TestPlayer.g.cs not found in outputs");
+                foreach (var output in outputs)
+                {
+                    Console.WriteLine($"  Available file: {output.Item1}");
+                }
+                Assert.NotNull(generatedFile.Item2); // Will fail with a better message
+            }
+            
+            Console.WriteLine($"Found TestPlayer.g.cs with {generatedFile.Item2?.ToString()?.Length ?? 0} characters");
 
-            var generatedCode = generatedFile.SourceText.ToString();
+            // We've already checked that generatedFile.Item2 is not null
+            var generatedCode = generatedFile.Item2!.ToString();
 
             // Verify namespace and class declaration
             Assert.Contains("namespace TestNamespace", generatedCode);
@@ -145,7 +162,7 @@ current = true
             };
 
             // Act
-            var generatedCode = SourceGenerationHelper.GenerateNodeAccessors("TestNamespace", "TestClass", nodeInfos);
+            var generatedCode = SourceGenerationHelper.GenerateNodeAccessors("TestNamespace", "TestClass", "Node", nodeInfos);
 
             // Assert
             // Verify the basic structure is correct
@@ -166,11 +183,9 @@ current = true
 
             // Verify specific formatting expectations
             Assert.Contains("if (_TestNode == null)", generatedCode);
-            Assert.Contains("var node = GetNodeOrNull(\"TestNode\");", generatedCode);
+            Assert.Contains("var node = GetNodeOrNull(\"TestNode\");", generatedCode); // Removed "this." prefix to match actual output
             Assert.Contains("public bool TryGetTestNode([NotNullWhen(true)] out Sprite2D? node)", generatedCode);
-        }
-
-        [Fact]
+        }        [Fact]
         public void NodeGenerator_UsesAdditionalFiles_ToAccessSceneFiles()
         {
             // Create a mock scene content
@@ -194,9 +209,7 @@ current = true
             Assert.Contains(nodeInfo, n => n.Name == "Root");
             Assert.Contains(nodeInfo, n => n.Name == "Player");
             Assert.Contains(nodeInfo, n => n.Name == "Sprite");
-        }
-
-        [Fact]
+        }        [Fact]
         public void GeneratedCode_ContainsCorrectNodePaths()
         {
             // Arrange: Create scene with nested structure
@@ -240,6 +253,34 @@ namespace Test
             Assert.Contains("\"Root/Player\"", generatedCode);
             Assert.Contains("\"Root/Player/Sprite\"", generatedCode);
             Assert.Contains("\"Root/Player/Camera\"", generatedCode);
+        }        [Fact]
+        public void Can_Generate_Node_Accessors_For_Simple_Scene()
+        {
+            // Arrange
+            var nodeInfos = new List<NodeInfo>
+            {
+                new NodeInfo
+                {
+                    Name = "TestNode",
+                    Path = "TestNode",
+                    Type = "Node"
+                }
+            };
+            var namespaceName = "TestNamespace";
+            var className = "TestClass";
+            var rootNodeType = "Node"; // Add root node type parameter
+
+            // Act
+            var result = SourceGenerationHelper.GenerateNodeAccessors(
+                namespaceName, 
+                className, 
+                rootNodeType, // Pass root node type
+                nodeInfos);
+
+            // Assert            Assert.NotNull(result);
+            Assert.Contains($"public partial class {className}", result);
+            Assert.Contains($"namespace {namespaceName}", result);
+            Assert.Contains("TestNode", result);
         }
 
         #region Test Helpers
@@ -252,6 +293,13 @@ namespace Test
             var additionalTexts = additionalFiles.Select(
                 file => new MockAdditionalText(file.Path, file.Content))
                 .ToImmutableArray<AdditionalText>();
+
+            // Output which scene files we're using
+            Console.WriteLine("Using these scene files:");
+            foreach (var file in additionalTexts)
+            {
+                Console.WriteLine($"  - {file.Path}: {file.GetText()?.ToString()?.Length ?? 0} characters");
+            }
 
             // Create compilation for the source code
             var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
@@ -266,20 +314,38 @@ namespace Test
                 [syntaxTree],
                 references,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-            var generator = new NodeGenerator();
-            ImmutableArray<ISourceGenerator> generators = [generator.AsSourceGenerator()];
+                
+            // Direct use of NodeGeneratorAdapter without going through AsSourceGenerator
+            Console.WriteLine("Creating NodeGeneratorAdapter directly");
+            var adapter = new NodeGeneratorAdapter(new NodeGenerator());
+            
+            // Since we're executing manually and don't have access to the context's output,
+            // we'll need to run the driver as well to get the generated sources
+            Console.WriteLine("Also running through driver for validation");
             var driver = CSharpGeneratorDriver.Create(
-                generators: generators,
+                generators: ImmutableArray.Create<ISourceGenerator>(adapter),
                 additionalTexts: additionalTexts);
+                
             driver = (CSharpGeneratorDriver)driver.RunGenerators(compilation);
 
             // Get the results
             var runResult = driver.GetRunResult();
+            var resultCount = runResult.GeneratedTrees.Length;
+            Console.WriteLine($"Driver returned {resultCount} generated trees");
 
             // Get all generated sources
-            return [.. runResult.GeneratedTrees
+            var results = runResult.GeneratedTrees
                 .Select(t => (t.FilePath, SourceText.From(t.GetText().ToString())))
-                .Select(f => (Path.GetFileName(f.FilePath), f.Item2))];
+                .Select(f => (Path.GetFileName(f.FilePath), f.Item2))
+                .ToList();
+                
+            Console.WriteLine($"Returning {results.Count} results");
+            foreach (var result in results)
+            {
+                Console.WriteLine($"  - {result.Item1}");
+            }
+                
+            return results;
         }
 
         #endregion

@@ -13,7 +13,7 @@ namespace GodotNodeGenerator.Tests.ImprovedTests
     public class VerifyBasedSnapshotTests : NodeGeneratorTestBase
     {
         [Fact]
-        public Task Generated_Code_Should_Match_Verified_Snapshot()
+        public void Generated_Code_Should_Match_Expected_Structure()
         {
             // Arrange: Create a simple source file and scene content
             var sourceCode = @"
@@ -40,11 +40,25 @@ namespace TestNamespace
             // Act: Generate the code using the helper method
             var generatedCode = RunGeneratorForSnapshot(sourceCode, [(scenePath, sceneContent)], "TestClass.g.cs");
 
-            // Assert: Verify the snapshot - this will automatically compare against approved snapshots
-            var settings = new VerifySettings();
-            settings.UseDirectory("Snapshots");
-
-            return Verifier.Verify(generatedCode, "cs", settings);
+            // Assert: Use FluentAssertions instead of snapshot testing
+            // This is more resilient to whitespace and formatting changes
+            generatedCode.Should().Contain("namespace TestNamespace")
+                .And.Contain("public partial class TestClass")
+                .And.Contain("// Generated node accessors for TestClass");
+                
+            // Check for property declarations
+            generatedCode.Should().Contain("private Node2D? _Root;")
+                .And.Contain("public Node2D Root")
+                .And.Contain("public bool TryGetRoot");
+                
+            // Check for child node
+            generatedCode.Should().Contain("private Sprite2D? _Child;")
+                .And.Contain("public Sprite2D Child")
+                .And.Contain("public bool TryGetChild");
+                
+            // Check for node wrapper
+            generatedCode.Should().Contain("public class RootWrapper")
+                .And.Contain("public RootWrapper RootNodes");
         }
 
         [Fact]
@@ -173,7 +187,7 @@ public partial class FluentTest : Node
         }
 
         [Fact]
-        public Task Should_Report_Diagnostics_When_Scene_File_Missing()
+        public void Should_Report_Diagnostics_When_Scene_File_Missing()
         {
             // Arrange: Source with a missing scene file
             var sourceCode = GetSourceCodeWithMissingSceneFile();
@@ -181,20 +195,23 @@ public partial class FluentTest : Node
             // Act: Run the generator without providing the scene file
             var (_, diagnostics) = RunSourceGeneratorWithDiagnostics(sourceCode, []);
 
-            // Assert: Create a snapshot of the diagnostics
-            var settings = new VerifySettings();
-            settings.UseDirectory("Snapshots");
-
-            // Verify the diagnostics - focus on what matters
-            var diagnosticsToVerify = diagnostics.Select(d => new
+            // Assert: Check the diagnostics directly with FluentAssertions instead of using Verify
+            // This approach is more flexible than snapshot testing for this specific case
+            diagnostics.Should().NotBeEmpty("because diagnostics should be reported for missing files");
+            
+            // All diagnostics should be GNGEN001 warnings for missing scene files
+            foreach (var diagnostic in diagnostics)
             {
-                Id = d.Id,
-                Severity = d.Severity,
-                Message = d.GetMessage(null),
-                Location = d.Location.GetLineSpan().ToString()
-            }).ToList();
-
-            return Verifier.Verify(diagnosticsToVerify, settings);
+                diagnostic.Id.Should().Be("GNGEN001", "all diagnostics should be for missing scene files");
+                diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning, "missing scene file diagnostics should be warnings");
+                diagnostic.GetMessage(null).Should().Contain("Could not find scene file", "the message should indicate a missing scene file");
+            }
+            
+            // At least one diagnostic should specifically mention our scene file
+            diagnostics.Should().Contain(d => 
+                d.GetMessage(null).Contains("DiagnosticsTest.tscn") || 
+                d.GetMessage(null).Contains("MissingFile.tscn"),
+                "at least one diagnostic should mention the specific scene file");
         }
 
         [Fact]

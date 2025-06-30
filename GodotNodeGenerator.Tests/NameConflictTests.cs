@@ -18,11 +18,9 @@ namespace GodotNodeGenerator.Tests
                     Type = "Node",
                     Path = "TestClass"
                 }
-            };
-
-            // Generate code for class with same name as node
+            };            // Generate code for class with same name as node
             var generatedCode = SourceGenerationHelper.GenerateNodeAccessors(
-                "TestNamespace", "TestClass", nodeInfos);
+                "TestNamespace", "TestClass", "Node", nodeInfos);
 
             // Verify proper suffix was added to avoid conflict
             Assert.Contains("private Node? _TestClassNode;", generatedCode);
@@ -31,7 +29,7 @@ namespace GodotNodeGenerator.Tests
 
             // Now try with a different class name (no conflict)
             var generatedCode2 = SourceGenerationHelper.GenerateNodeAccessors(
-                "TestNamespace", "DifferentClass", nodeInfos);
+                "TestNamespace", "DifferentClass", "Node", nodeInfos);
 
             // Verify no suffix was added when no conflict
             Assert.Contains("private Node? _TestClass;", generatedCode2);
@@ -55,10 +53,8 @@ namespace GodotNodeGenerator.Tests
                     Type = "Sprite2D",
                     Path = "Player/Sprite"
                 }
-            };
-
-            // Act
-            var generatedCode = SourceGenerationHelper.GenerateNodeAccessors("TestNamespace", "Player", nodeInfos);
+            };            // Act
+            var generatedCode = SourceGenerationHelper.GenerateNodeAccessors("TestNamespace", "Player", "Node2D", nodeInfos);
 
             // Assert
             // Verify property is renamed to avoid conflict
@@ -95,10 +91,8 @@ namespace GodotNodeGenerator.Tests
                     Type = "Sprite2D",
                     Path = "Root/Enemy/Sprite"
                 }
-            };
-
-            // Act
-            var generatedCode = SourceGenerationHelper.GenerateNodeAccessors("TestNamespace", "Enemy", nodeInfos);
+            };            // Act
+            var generatedCode = SourceGenerationHelper.GenerateNodeAccessors("TestNamespace", "Enemy", "Node2D", nodeInfos);
 
             // Assert
             // Verify non-root nodes with name conflicts are also handled
@@ -126,10 +120,8 @@ namespace GodotNodeGenerator.Tests
                     Type = "Sprite2D",
                     Path = "Player/Sprite" // Child of root node
                 }
-            };
-
-            // Act
-            var generatedCode = SourceGenerationHelper.GenerateNodeAccessors("TestNamespace", "Player", nodeInfos);
+            };            // Act
+            var generatedCode = SourceGenerationHelper.GenerateNodeAccessors("TestNamespace", "Player", "Node2D", nodeInfos);
 
             // Assert
             // Check wrapper class name uses the modified property name
